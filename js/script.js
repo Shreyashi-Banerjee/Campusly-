@@ -728,7 +728,7 @@ const revealObserver = new IntersectionObserver((entries, obs) => {
       obs.unobserve(entry.target);
     }
   });
-}, { threshold: 0.1 });
+}, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
 
 document.querySelectorAll('.reveal-on-scroll').forEach(el => revealObserver.observe(el));
 
@@ -740,12 +740,12 @@ const counterObserver = new IntersectionObserver((entries, obs) => {
       const target = parseInt(el.dataset.target, 10);
       if (isNaN(target)) return;
 
-      const duration = 1500;
+      const duration = 1800;
       const start = performance.now();
 
       function update(nowTime) {
         const progress = Math.min((nowTime - start) / duration, 1);
-        const ease = 1 - Math.pow(1 - progress, 3);
+        const ease = 1 - Math.pow(1 - progress, 4);
         const currentVal = Math.floor(ease * target);
 
         if (target >= 1000) {
@@ -789,7 +789,7 @@ function showToast(title, message, icon = '✦') {
 
   const closeBtn = toast.querySelector('.toast-close');
   const dismiss = () => {
-    toast.style.animation = 'slideInRight 0.3s ease reverse forwards';
+    toast.style.animation = 'toastSlideIn 0.3s ease reverse forwards';
     setTimeout(() => toast.remove(), 300);
   };
 
@@ -798,9 +798,108 @@ function showToast(title, message, icon = '✦') {
 }
 
 /* ---------------------------------------------------------------------
-   11. DOM Initialization
+   11. Enhanced Interactivity — Mouse-tracking & Micro-animations
+   --------------------------------------------------------------------- */
+
+/* Button ripple effect — track mouse position */
+document.querySelectorAll('.btn').forEach(btn => {
+  btn.addEventListener('mousemove', e => {
+    const rect = btn.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    btn.style.setProperty('--x', x + '%');
+    btn.style.setProperty('--y', y + '%');
+  });
+});
+
+/* Parallax effect on hero section */
+const hero = document.querySelector('.hero');
+if (hero) {
+  window.addEventListener('scroll', () => {
+    const scrolled = window.scrollY;
+    const glows = hero.querySelectorAll('.hero-glow-1, .hero-glow-2');
+    glows.forEach((glow, i) => {
+      const speed = (i + 1) * 0.15;
+      glow.style.transform = `translateY(${scrolled * speed}px)`;
+    });
+  }, { passive: true });
+}
+
+/* Tilt effect on cards */
+function initTiltEffect() {
+  const tiltElements = document.querySelectorAll('.countdown-card, .gallery-item, .dept-stat-box');
+  
+  tiltElements.forEach(el => {
+    el.addEventListener('mousemove', e => {
+      const rect = el.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width - 0.5;
+      const y = (e.clientY - rect.top) / rect.height - 0.5;
+      
+      el.style.transform = `
+        perspective(800px)
+        rotateX(${-y * 6}deg)
+        rotateY(${x * 6}deg)
+        translateY(-4px)
+      `;
+    });
+    
+    el.addEventListener('mouseleave', () => {
+      el.style.transform = '';
+    });
+  });
+}
+
+/* Typing effect for hero heading on load */
+function initTypingEffect() {
+  const gradientSpan = document.querySelector('.text-gradient');
+  if (!gradientSpan) return;
+  
+  const originalText = gradientSpan.textContent;
+  gradientSpan.textContent = '';
+  gradientSpan.style.borderRight = '2px solid var(--primary)';
+  
+  let charIndex = 0;
+  const typeInterval = setInterval(() => {
+    gradientSpan.textContent += originalText[charIndex];
+    charIndex++;
+    if (charIndex >= originalText.length) {
+      clearInterval(typeInterval);
+      setTimeout(() => {
+        gradientSpan.style.borderRight = 'none';
+      }, 800);
+    }
+  }, 60);
+}
+
+/* Smooth section entrance with stagger for event cards */
+function initEventCardAnimations() {
+  const eventCards = document.querySelectorAll('.event-card');
+  const cardObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        const delay = i * 120;
+        entry.target.style.animation = `staggerIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms both`;
+        cardObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+  
+  eventCards.forEach(card => cardObserver.observe(card));
+}
+
+/* ---------------------------------------------------------------------
+   12. DOM Initialization
    --------------------------------------------------------------------- */
 document.addEventListener('DOMContentLoaded', () => {
   renderEvents();
   initCountdown();
+  initTiltEffect();
+  initEventCardAnimations();
+  
+  // Small delay for typing effect to look intentional
+  setTimeout(initTypingEffect, 1200);
+  
+  // Add loaded class for entrance animations
+  document.body.classList.add('is-loaded');
 });
+
